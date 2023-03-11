@@ -159,9 +159,24 @@
 				const input$ = form$.querySelector('input:checked')
 				if(input$){
 					votar(input$.value)
-				}
+					input$.checked = false
 
+					input$.parentElement.classList.remove('votou')
+					setTimeout(()=>{
+						input$.parentElement.classList.add('votou')
+					},1)
+					
+					lockButton()
+				}
 			})
+
+			const btn$ = form$.querySelector('button')
+			const lockButton = ()=>{
+				btn$.disabled = true
+				setTimeout(()=>{
+					btn$.disabled = false
+				},5000)
+			}
 		}
 
 		function votar(curso){
@@ -171,6 +186,7 @@
 			votos += voto
 			votosHandler.set(votos);
 			window.dispatchEvent(new CustomEvent('vote',{detail:curso}))
+
 		}
 
 		const getResultados = ()=>{
@@ -182,6 +198,36 @@
 		}
 	}
 
+	const contadorDeResultados = (resultados)=>{
+		const resultados$ = {}
+		const eventoDeVoto = (event)=>{
+			const sigla = event.detail
+			
+			if(!resultados$.hasOwnProperty(sigla)){
+				resultados$[sigla] = document.querySelector('.contagem ol [data-curso="'+sigla+'"]')
+			}
+			const resutlado$ = resultados$[sigla];
+			resutlado$.dataset.contagem = parseInt(resutlado$.dataset.contagem) +1
+			resutlado$.style.order = resutlado$.dataset.contagem;
+		}
+		
+		const montarListaDeResultados = (resultados)=>{
+			const lista$ = document.querySelector('.contagem ol')
+			let _html = ''
+			for (const curso in resultados) {
+				if (Object.hasOwnProperty.call(resultados, curso)) {
+					const contagem = resultados[curso];
+					_html += '<li data-curso="'+curso+'" data-contagem="'+contagem+'" style="order:'+contagem+'">'
+					_html += faculdades.find(_curso=>_curso.sigla == curso).nome
+					_html += '</li>'
+				}
+			}
+			lista$.insertAdjacentHTML('afterbegin',_html)
+		}
+		
+		montarListaDeResultados(resultados)
+		return {eventoDeVoto}
+	}
 	const montarFormulario = ()=>{
 		const cursos$ = document.querySelector('.votacao .cursos')
 		const cursosPorArea = {}
@@ -213,35 +259,13 @@
 		cursos$.insertAdjacentHTML('afterbegin',_html)
 	}
 
-	const montarListaDeResultados = (resultados)=>{
-		const lista$ = document.querySelector('.contagem ol')
-		let _html = ''
-		for (const curso in resultados) {
-			if (Object.hasOwnProperty.call(resultados, curso)) {
-				const contagem = resultados[curso];
-				_html += '<li data-curso="'+curso+'" data-contagem="'+contagem+'" >'
-				_html += faculdades.find(_curso=>_curso.sigla == curso).nome
-				_html += '</li>'
-			}
-		}
-		lista$.insertAdjacentHTML('afterbegin',_html)
-	}
 	// SETUP
 	const {setupVotacao,getResultados} = contadorDeVotos()
 
 	window.addEventListener('load',()=>{
 		setupVotacao();
 		montarFormulario();
-		montarListaDeResultados(getResultados())
+		const {eventoDeVoto} = contadorDeResultados(getResultados())
+		window.addEventListener('vote',eventoDeVoto)
 	})
-
-	window.addEventListener('vote',event=>{
-		const sigla = event.detail
-		resutlado$ = document.querySelector('.contagem ol [data-curso="'+sigla+'"]')
-		resutlado$.dataset.contagem = parseInt(resutlado$.dataset.contagem) +1
-
-	})
-
-	
-
 })();
